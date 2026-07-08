@@ -1,0 +1,53 @@
+<idea-plugin>
+    <id>com.scheduler.task-scheduler</id>
+    <name>Task Scheduler &amp; IDE Automation</name>
+    <vendor email="support@scheduler.com" url="https://github.com/scheduler/task-scheduler">TaskScheduler</vendor>
+
+    <description><![CDATA[
+      Android Studio and IntelliJ plugin that allows developers to schedule IDE actions,
+      saved macros, terminal commands, and scripts to execute automatically on recurring schedules or custom timers.
+      <br>
+      <b>Features:</b>
+      <ul>
+        <li>Schedule any registered IDE Action (Gradle sync, build APK, run tests, clean project)</li>
+        <li>Schedule execution of saved IDE macros</li>
+        <li>Schedule terminal commands directly within the IDE shell</li>
+        <li>Schedule external scripts (Bash, Python, PowerShell, Batch files)</li>
+        <li>Repeat execution continuously with highly adjustable intervals</li>
+        <li>Pause, resume, and inspect detailed execution histories</li>
+      </ul>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.plugins.terminal</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <!-- Persistent Storage Service -->
+        <projectService serviceImplementation="com.scheduler.persistence.TaskStorage"/>
+
+        <!-- Right-side Tool Window for Task Scheduler -->
+        <toolWindow id="Task Scheduler" 
+                    anchor="right" 
+                    icon="AllIcons.Actions.Checked" 
+                    factoryClass="com.scheduler.ui.SchedulerToolWindowFactory"/>
+
+        <!-- Settings Page -->
+        <projectConfigurable parentId="tools" 
+                             instance="com.scheduler.ui.SettingsConfigurable" 
+                             id="com.scheduler.ui.SettingsConfigurable" 
+                             displayName="Task Scheduler"/>
+
+        <notificationGroup id="Task Scheduler Alerts"
+                           displayType="BALLOON"/>
+    </extensions>
+
+    <actions>
+        <group id="TaskScheduler.Menu" text="Task Scheduler" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <action id="com.scheduler.actions.OpenSchedulerAction" 
+                    class="com.scheduler.actions.OpenSchedulerAction" 
+                    text="Open Scheduler Window" 
+                    description="Opens the scheduler sidebar tool window"/>
+        </group>
+    </actions>
+</idea-plugin>
