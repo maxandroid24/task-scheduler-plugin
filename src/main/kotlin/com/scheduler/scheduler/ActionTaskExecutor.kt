@@ -36,8 +36,8 @@ class ActionTaskExecutor : TaskExecutor {
                     dataContext
                 )
                 
-                outputBuilder.append("Invoking action actionPerformed safely...\n")
-                com.intellij.openapi.actionSystem.ex.ActionUtil.performActionDumbAware(action, event)
+                outputBuilder.append("Invoking action actionPerformed...\n")
+                action.actionPerformed(event)
                 success = true
                 outputBuilder.append("Action executed successfully.")
             } catch (e: Exception) {
