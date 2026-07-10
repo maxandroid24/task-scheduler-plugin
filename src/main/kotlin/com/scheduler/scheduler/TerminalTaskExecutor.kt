@@ -3,8 +3,7 @@ package com.scheduler.scheduler
 import com.intellij.openapi.project.Project
 import com.scheduler.model.ScheduledTask
 import com.scheduler.model.ExecutionHistory
-import org.jetbrains.plugins.terminal.TerminalView
-import org.jetbrains.plugins.terminal.ShellTerminalWidget
+import org.jetbrains.plugins.terminal.TerminalToolWindowManager
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
@@ -21,13 +20,11 @@ class TerminalTaskExecutor : TaskExecutor {
         var resultText = "Success"
 
         try {
-            // Check if we should execute directly in the IDE Terminal toolwindow
-            val terminalView = TerminalView.getInstance(project)
             if (task.arguments["use_ide_terminal"] == "true") {
                 outputBuilder.append("Attempting integration with Terminal widget...\n")
-                // Programmatic execution in TerminalView
-                val widget = terminalView.createLocalShellWidget(project.basePath, "Task Scheduler: ${task.name}")
-                widget.executeCommand(command)
+                val terminalManager = TerminalToolWindowManager.getInstance(project)
+                val widget = terminalManager.createShellWidget(project.basePath, "Task Scheduler: ${task.name}", true, true)
+                widget.sendCommandToExecute(command)
                 outputBuilder.append("Sent command to IDE Terminal widget safely.")
                 resultText = "Command sent to terminal widget"
             } else {

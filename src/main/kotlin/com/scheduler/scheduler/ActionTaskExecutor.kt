@@ -29,18 +29,15 @@ class ActionTaskExecutor : TaskExecutor {
                     if (com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.name == dataId) project else null
                 }
                 
-                val presentation = action.templatePresentation.clone()
-                val event = AnActionEvent(
-                    null, 
-                    dataContext, 
-                    "TaskSchedulerPlugin", 
-                    presentation, 
-                    actionManager, 
-                    0
+                val event = AnActionEvent.createFromAnAction(
+                    action,
+                    null,
+                    "TaskSchedulerPlugin",
+                    dataContext
                 )
                 
-                outputBuilder.append("Invoking action actionPerformed...\n")
-                action.actionPerformed(event)
+                outputBuilder.append("Invoking action actionPerformed safely...\n")
+                com.intellij.openapi.actionSystem.ex.ActionUtil.performActionDumbAware(action, event)
                 success = true
                 outputBuilder.append("Action executed successfully.")
             } catch (e: Exception) {
