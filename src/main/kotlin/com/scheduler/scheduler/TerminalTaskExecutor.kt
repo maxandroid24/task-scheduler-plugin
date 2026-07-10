@@ -23,8 +23,8 @@ class TerminalTaskExecutor : TaskExecutor {
             if (task.arguments["use_ide_terminal"] == "true") {
                 outputBuilder.append("Attempting integration with Terminal widget...\n")
                 val terminalManager = TerminalToolWindowManager.getInstance(project)
-                val widget = terminalManager.createShellWidget(project.basePath, "Task Scheduler: ${task.name}", true, true)
-                widget.sendCommandToExecute(command)
+                val widget = terminalManager.createLocalShellWidget(project.basePath, "Task Scheduler: ${task.name}")
+                widget.executeCommand(command)
                 outputBuilder.append("Sent command to IDE Terminal widget safely.")
                 resultText = "Command sent to terminal widget"
             } else {
