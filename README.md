@@ -26,7 +26,7 @@ To build the plugin and install it locally, run the Gradle wrapper in your termi
 ```
 The generated plugin package will be available at:
 ```
-build/distributions/task-scheduler-plugin-1.0.3.zip
+build/distributions/task-scheduler-plugin-1.0.4.zip
 ```
 
 ### 2. Manual Installation
@@ -34,7 +34,7 @@ build/distributions/task-scheduler-plugin-1.0.3.zip
 2. Go to **Settings/Preferences** `Ctrl+Alt+S` (or `Cmd+,` on macOS).
 3. Select **Plugins** from the left sidebar.
 4. Click the gear icon (⚙️) on the top right, select **Install Plugin from Disk...**.
-5. choose the compiled `task-scheduler-plugin-1.0.3.zip` file from your build output directory.
+5. choose the compiled `task-scheduler-plugin-1.0.4.zip` file from your build output directory.
 6. Restart Android Studio.
 
 ## Usage Guide
