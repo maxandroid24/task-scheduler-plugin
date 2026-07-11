@@ -74,7 +74,6 @@ class SchedulerManager(private val project: Project) : Disposable {
             JobScheduler.getScheduler().schedule(
                 {
                     taskRunner.run()
-                    task.status = TaskStatus.STOPPED
                     task.nextRunTimestamp = null
                 },
                 initialDelay,
@@ -106,7 +105,7 @@ class SchedulerManager(private val project: Project) : Disposable {
             
             task.runCount++
             task.lastRunTimestamp = System.currentTimeMillis()
-            task.status = if (task.isRepeat) TaskStatus.SCHEDULED else TaskStatus.STOPPED
+            task.status = if (task.isRepeat) TaskStatus.SCHEDULED else TaskStatus.SUCCESS
             
             // Persist the history
             TaskStorage.getInstance(project).addHistory(history)
@@ -126,7 +125,7 @@ class SchedulerManager(private val project: Project) : Disposable {
     private fun handleTaskFailure(task: ScheduledTask, e: Exception, fallbackStatus: TaskStatus) {
         task.runCount++
         task.lastRunTimestamp = System.currentTimeMillis()
-        task.status = if (task.isRepeat) TaskStatus.SCHEDULED else TaskStatus.STOPPED
+        task.status = if (task.isRepeat) TaskStatus.SCHEDULED else TaskStatus.FAILED
 
         val history = ExecutionHistory(
             taskId = task.id,

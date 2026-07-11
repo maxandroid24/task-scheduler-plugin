@@ -6,5 +6,7 @@ enum class TaskStatus(val displayName: String) {
     PAUSED("Paused"),
     STOPPED("Stopped"),
     DISABLED("Disabled"),
-    SCHEDULED("Scheduled")
+    SCHEDULED("Scheduled"),
+    SUCCESS("Success"),
+    FAILED("Failed")
 }
