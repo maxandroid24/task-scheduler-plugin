@@ -24,8 +24,13 @@ class SchedulerManager(private val project: Project) : Disposable {
         TaskType.IDE_ACTION to ActionTaskExecutor(),
         TaskType.IDE_MACRO to MacroTaskExecutor(),
         TaskType.TERMINAL_COMMAND to TerminalTaskExecutor(),
-        TaskType.EXTERNAL_SCRIPT to ScriptTaskExecutor()
+        TaskType.EXTERNAL_SCRIPT to ScriptTaskExecutor(),
+        TaskType.COMBINED_SEQUENCE to CombinedTaskExecutor(this)
     )
+
+    fun getExecutor(type: TaskType): TaskExecutor? {
+        return executors[type]
+    }
 
     init {
         LOG.info("Initializing Task Scheduler Engine...")
