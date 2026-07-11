@@ -7,10 +7,14 @@ import com.intellij.ui.table.JBTable
 import com.scheduler.persistence.TaskStorage
 import java.awt.BorderLayout
 import java.awt.Dimension
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.swing.*
 import javax.swing.table.DefaultTableModel
 
 class HistoryPanel(private val project: Project) : JPanel(BorderLayout()) {
+    private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault())
     private val tableModel = DefaultTableModel(arrayOf("Time", "Task Name", "Result", "Duration (ms)"), 0)
     private val table = JBTable(tableModel)
     private val outputArea = JBTextArea()
@@ -57,7 +61,7 @@ class HistoryPanel(private val project: Project) : JPanel(BorderLayout()) {
         val histories = TaskStorage.getInstance(project).getHistories()
         histories.forEach { hist ->
             tableModel.addRow(arrayOf(
-                hist.timestamp.toString().substring(11, 19), 
+                timeFormatter.format(Instant.ofEpochMilli(hist.timestamp)), 
                 hist.taskName, 
                 hist.result, 
                 hist.durationMs

@@ -281,7 +281,7 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
             "${task.name} (${task.type.displayName})"
         }
         val availableScroll = JBScrollPane(availableList)
-        availableScroll.preferredSize = Dimension(230, 175)
+        availableScroll.preferredSize = Dimension(240, 175)
         dualListBoxPanel.add(JPanel(BorderLayout()).apply {
             add(JLabel("Available Tasks:"), BorderLayout.NORTH)
             add(availableScroll, BorderLayout.CENTER)
@@ -309,7 +309,7 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
             "${step.task.name} (${step.task.type.displayName})$repStr"
         }
         val selectedScroll = JBScrollPane(selectedList)
-        selectedScroll.preferredSize = Dimension(230, 175)
+        selectedScroll.preferredSize = Dimension(240, 175)
         dualListBoxPanel.add(JPanel(BorderLayout()).apply {
             add(JLabel("Tasks in Sequence:"), BorderLayout.NORTH)
             add(selectedScroll, BorderLayout.CENTER)
@@ -406,7 +406,7 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
 
     override fun getPreferredSize(): Dimension? {
         val size = super.getPreferredSize() ?: return null
-        return Dimension((size.width * 1.15).toInt(), (size.height * 1.15).toInt())
+        return Dimension((size.width * 1.20).toInt(), (size.height * 1.15).toInt())
     }
 
     fun getTask(): ScheduledTask {

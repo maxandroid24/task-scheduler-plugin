@@ -1,15 +1,15 @@
 package com.scheduler.model
 
-import java.time.LocalDateTime
+
 
 data class ExecutionHistory(
-    val id: String = java.util.UUID.randomUUID().toString(),
-    val taskId: String,
-    val taskName: String,
-    val timestamp: LocalDateTime = LocalDateTime.now(),
-    val durationMs: Long,
-    val exitCode: Int, // 0 for success, non-zero for failure
-    val result: String, // Short summary: "Success" or "Failed: Error Msg"
-    val output: String, // Stderr / stdout execution output
-    val error: String? = null // Detailed exception message
+    var id: String = java.util.UUID.randomUUID().toString(),
+    var taskId: String = "",
+    var taskName: String = "",
+    var timestamp: Long = System.currentTimeMillis(),
+    var durationMs: Long = 0,
+    var exitCode: Int = 0, // 0 for success, non-zero for failure
+    var result: String = "", // Short summary: "Success" or "Failed: Error Msg"
+    var output: String = "", // Stderr / stdout execution output
+    var error: String? = null // Detailed exception message
 )

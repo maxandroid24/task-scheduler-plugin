@@ -3,7 +3,7 @@ package com.scheduler.model
 import java.util.UUID
 
 data class ScheduledTask(
-    val id: String = UUID.randomUUID().toString(),
+    var id: String = UUID.randomUUID().toString(),
     var name: String = "",
     var type: TaskType = TaskType.TERMINAL_COMMAND,
     var target: String = "", // IDE Action ID, Macro Name, Command, or Script Path
