@@ -10,6 +10,9 @@ import com.scheduler.model.ScheduledTask
 import com.scheduler.model.TaskType
 import com.scheduler.persistence.TaskStorage
 import java.awt.*
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.Transferable
+import java.awt.datatransfer.UnsupportedFlavorException
 import javax.swing.*
 
 class TaskDialog(private val project: Project, private val existingTask: ScheduledTask?) : DialogWrapper(project) {
@@ -25,13 +28,23 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
     private val availableListModel = DefaultListModel<ScheduledTask>()
     private val availableList = JBList(availableListModel)
     
-    private val selectedListModel = DefaultListModel<ScheduledTask>()
+    private val selectedListModel = DefaultListModel<SequenceStep>()
     private val selectedList = JBList(selectedListModel)
     
     private val addButton = JButton(">")
     private val removeButton = JButton("<")
-    private val upButton = JButton("▲ Move Up")
-    private val downButton = JButton("▼ Move Down")
+    private val upButton = JButton("▲ Move Up").apply {
+        horizontalAlignment = SwingConstants.LEFT
+        margin = Insets(4, 10, 4, 10)
+    }
+    private val downButton = JButton("▼ Move Down").apply {
+        horizontalAlignment = SwingConstants.LEFT
+        margin = Insets(4, 10, 4, 10)
+    }
+
+    private val repSpinnerModel = SpinnerNumberModel(1, 1, 100, 1)
+    private val repSpinner = JSpinner(repSpinnerModel)
+    private val repLabel = JLabel("Repetitions for selected task:")
 
     init {
         title = if (existingTask == null) "New Scheduled Task" else "Edit Task"
@@ -39,12 +52,35 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
         // Set up list selection listeners and initial states
         updateButtonStates()
         availableList.addListSelectionListener { updateButtonStates() }
-        selectedList.addListSelectionListener { updateButtonStates() }
+        selectedList.addListSelectionListener {
+            updateButtonStates()
+            val selectedStep = selectedList.selectedValue
+            if (selectedStep != null) {
+                repLabel.isEnabled = true
+                repSpinner.isEnabled = true
+                repSpinner.value = selectedStep.repetitions
+            } else {
+                repLabel.isEnabled = false
+                repSpinner.isEnabled = false
+                repSpinner.value = 1
+            }
+        }
+
+        repSpinner.addChangeListener {
+            val selectedStep = selectedList.selectedValue
+            if (selectedStep != null) {
+                val newVal = repSpinner.value as Int
+                if (selectedStep.repetitions != newVal) {
+                    selectedStep.repetitions = newVal
+                    selectedList.repaint()
+                }
+            }
+        }
         
         addButton.addActionListener {
             val selectedValues = availableList.selectedValuesList
             for (value in selectedValues) {
-                selectedListModel.addElement(value)
+                selectedListModel.addElement(SequenceStep(value))
                 availableListModel.removeElement(value)
             }
             updateButtonStates()
@@ -53,7 +89,7 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
         removeButton.addActionListener {
             val selectedValues = selectedList.selectedValuesList
             for (value in selectedValues) {
-                availableListModel.addElement(value)
+                availableListModel.addElement(value.task)
                 selectedListModel.removeElement(value)
             }
             updateButtonStates()
@@ -78,20 +114,72 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
                 selectedList.selectedIndex = selectedIdx + 1
             }
         }
+
+        // Drag and Drop implementation
+        availableList.dragEnabled = true
+        availableList.transferHandler = object : TransferHandler() {
+            override fun getSourceActions(c: JComponent): Int = COPY_OR_MOVE
+            
+            override fun createTransferable(c: JComponent): Transferable? {
+                val selected = availableList.selectedValuesList
+                return if (selected.isNotEmpty()) TaskTransferable(selected) else null
+            }
+            
+            override fun exportDone(source: JComponent, data: Transferable?, action: Int) {
+                if (action == MOVE && data is TaskTransferable) {
+                    for (task in data.tasks) {
+                        availableListModel.removeElement(task)
+                    }
+                    updateButtonStates()
+                }
+            }
+        }
+
+        selectedList.dragEnabled = true
+        selectedList.dropMode = DropMode.INSERT
+        selectedList.transferHandler = object : TransferHandler() {
+            override fun canImport(support: TransferSupport): Boolean {
+                return support.isDataFlavorSupported(TaskTransferable.TASK_FLAVOR)
+            }
+            
+            override fun importData(support: TransferSupport): Boolean {
+                if (!canImport(support)) return false
+                try {
+                    val transferable = support.transferable
+                    @Suppress("UNCHECKED_CAST")
+                    val tasks = transferable.getTransferData(TaskTransferable.TASK_FLAVOR) as? List<ScheduledTask> ?: return false
+                    
+                    val dl = support.dropLocation as? JList.DropLocation
+                    var index = dl?.index ?: selectedListModel.size()
+                    if (index < 0) index = selectedListModel.size()
+                    
+                    for (task in tasks) {
+                        selectedListModel.add(index++, SequenceStep(task))
+                    }
+                    return true
+                } catch (e: Exception) {
+                    return false
+                }
+            }
+        }
         
         // Populate lists
         val currentTaskId = existingTask?.id ?: ""
         val allTasks = TaskStorage.getInstance(project).getTasks()
         
-        val selectedIds = existingTask?.target?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
+        val selectedParts = existingTask?.target?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() } ?: emptyList()
         
-        selectedIds.forEach { id ->
+        selectedParts.forEach { part ->
+            val subParts = part.split(":")
+            val id = subParts[0]
+            val reps = if (subParts.size > 1) subParts[1].toIntOrNull() ?: 1 else 1
             val t = allTasks.firstOrNull { it.id == id }
             if (t != null) {
-                selectedListModel.addElement(t)
+                selectedListModel.addElement(SequenceStep(t, reps))
             }
         }
-        
+
+        val selectedIds = selectedParts.map { it.split(":")[0] }
         allTasks.forEach { task ->
             if (task.id != currentTaskId && 
                 !selectedIds.contains(task.id) && 
@@ -135,7 +223,7 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
             if (visited.add(curr)) {
                 val task = storage.getTask(curr)
                 if (task != null && task.type == TaskType.COMBINED_SEQUENCE) {
-                    val subIds = task.target.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    val subIds = task.target.split(",").map { it.trim() }.filter { it.isNotEmpty() }.map { it.split(":")[0] }
                     queue.addAll(subIds)
                 }
             }
@@ -193,7 +281,7 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
             "${task.name} (${task.type.displayName})"
         }
         val availableScroll = JBScrollPane(availableList)
-        availableScroll.preferredSize = Dimension(200, 150)
+        availableScroll.preferredSize = Dimension(230, 175)
         dualListBoxPanel.add(JPanel(BorderLayout()).apply {
             add(JLabel("Available Tasks:"), BorderLayout.NORTH)
             add(availableScroll, BorderLayout.CENTER)
@@ -216,11 +304,12 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
         // Right: Selected Sequence
         dlbc.gridx = 2
         dlbc.weightx = 0.4
-        selectedList.cellRenderer = SimpleListCellRenderer.create("") { task ->
-            "${task.name} (${task.type.displayName})"
+        selectedList.cellRenderer = SimpleListCellRenderer.create("") { step ->
+            val repStr = if (step.repetitions > 1) " [x${step.repetitions}]" else ""
+            "${step.task.name} (${step.task.type.displayName})$repStr"
         }
         val selectedScroll = JBScrollPane(selectedList)
-        selectedScroll.preferredSize = Dimension(200, 150)
+        selectedScroll.preferredSize = Dimension(230, 175)
         dualListBoxPanel.add(JPanel(BorderLayout()).apply {
             add(JLabel("Tasks in Sequence:"), BorderLayout.NORTH)
             add(selectedScroll, BorderLayout.CENTER)
@@ -241,6 +330,16 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
         dualListBoxPanel.add(rightButtons, dlbc)
         
         combinedSeqPanel.add(dualListBoxPanel, BorderLayout.CENTER)
+
+        // Repetitions Spinner Panel at the bottom of combined config
+        val repControlPanel = JPanel(FlowLayout(FlowLayout.LEFT, 5, 5))
+        repControlPanel.add(repLabel)
+        repSpinner.preferredSize = Dimension(60, 24)
+        repControlPanel.add(repSpinner)
+        repLabel.isEnabled = false
+        repSpinner.isEnabled = false
+        combinedSeqPanel.add(repControlPanel, BorderLayout.SOUTH)
+        
         cardPanel.add(combinedSeqPanel, "COMBINED")
         
         // Add cardPanel to main grid bag layout spanning both columns
@@ -305,17 +404,23 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
         return panel
     }
 
+    override fun getPreferredSize(): Dimension? {
+        val size = super.getPreferredSize() ?: return null
+        return Dimension((size.width * 1.15).toInt(), (size.height * 1.15).toInt())
+    }
+
     fun getTask(): ScheduledTask {
         val task = existingTask ?: ScheduledTask()
         task.name = nameField.text.trim()
         task.type = typeBox.selectedItem as TaskType
         
         if (task.type == TaskType.COMBINED_SEQUENCE) {
-            val selectedIds = mutableListOf<String>()
+            val selectedSteps = mutableListOf<String>()
             for (i in 0 until selectedListModel.size()) {
-                selectedIds.add(selectedListModel.getElementAt(i).id)
+                val step = selectedListModel.getElementAt(i)
+                selectedSteps.add("${step.task.id}:${step.repetitions}")
             }
-            task.target = selectedIds.joinToString(",")
+            task.target = selectedSteps.joinToString(",")
         } else {
             task.target = targetField.text.trim()
         }
@@ -326,5 +431,19 @@ class TaskDialog(private val project: Project, private val existingTask: Schedul
         task.autoStart = autoStartCheck.isSelected
         task.description = descField.text.trim()
         return task
+    }
+
+    data class SequenceStep(val task: ScheduledTask, var repetitions: Int = 1)
+
+    class TaskTransferable(val tasks: List<ScheduledTask>) : Transferable {
+        companion object {
+            val TASK_FLAVOR = DataFlavor(ScheduledTask::class.java, "ScheduledTask")
+        }
+        override fun getTransferDataFlavors(): Array<DataFlavor> = arrayOf(TASK_FLAVOR)
+        override fun isDataFlavorSupported(flavor: DataFlavor): Boolean = flavor == TASK_FLAVOR
+        override fun getTransferData(flavor: DataFlavor): Any {
+            if (flavor == TASK_FLAVOR) return tasks
+            throw UnsupportedFlavorException(flavor)
+        }
     }
 }
