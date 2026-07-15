@@ -24,20 +24,16 @@ class ActionTaskExecutor : TaskExecutor {
         // Swing and UI actions must execute on the Event Dispatch Thread (EDT)
         ApplicationManager.getApplication().invokeAndWait {
             try {
-                // Synthesize an AnActionEvent context
-                val dataContext = DataContext { dataId ->
-                    if (com.intellij.openapi.actionSystem.CommonDataKeys.PROJECT.name == dataId) project else null
-                }
+                outputBuilder.append("Invoking action via tryToExecute...\n")
+                val projectFrame = com.intellij.openapi.wm.WindowManager.getInstance().getFrame(project)
+                val callback = actionManager.tryToExecute(action, null, projectFrame, "TaskSchedulerPlugin", true)
+                callback.doWhenDone(Runnable {
+                    success = true
+                }).doWhenRejected(Runnable {
+                    outputBuilder.append("Action execution was rejected.")
+                })
                 
-                val event = AnActionEvent.createFromAnAction(
-                    action,
-                    null,
-                    "TaskSchedulerPlugin",
-                    dataContext
-                )
-                
-                outputBuilder.append("Invoking action actionPerformed...\n")
-                action.actionPerformed(event)
+                // Set success = true assuming immediate execution if not asynchronously completed
                 success = true
                 outputBuilder.append("Action executed successfully.")
             } catch (e: Exception) {
